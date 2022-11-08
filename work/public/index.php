@@ -3,6 +3,7 @@
 define('DSN', 'mysql:host=db;dbname=myapp;charset=utf8mb4');
 define('DB_USER', 'myappuser');
 define('DB_PASS', 'myapppass');
+define('SITE_URL', 'http://' . $_SERVER['HTTP_HOST']);
 
 try {
   $pdo = new PDO (
@@ -15,9 +16,26 @@ try {
       PDO::ATTR_EMULATE_PREPARES => false,
     ]
   );
-} catch (PDOExceptio $e) {
+} catch (PDOException $e) {
   echo $e->getMessage();
   exit;
+}
+
+function h($str)
+{
+  return htmlspecialchars($str, ENT_QUOTES, 'UTF-8');
+}
+
+function addTodo($pdo)
+{
+  $title = trim(filter_input(INPUT_POST, 'title'));
+  if ($title === '') {
+    return;
+  }
+
+  $stmt = $pdo->prepare("INSERT INTO todos (title) VALUES (:title)");
+  $stmt->bindValue('title', $title, PDO::PARAM_STR);
+  $stmt->execute();
 }
 
 function getTodos($pdo)
@@ -27,9 +45,14 @@ function getTodos($pdo)
   return $todos;
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  addTodo($pdo);
+
+  header('Location: ' . SITE_URL);
+  exit;
+}
+
 $todos = getTodos($pdo);
-var_dump($todos);
-exit;
 
 ?>
 
@@ -43,19 +66,19 @@ exit;
 <body>
   <h1>Todos</h1>
 
+  <form action="" method="post">
+    <input type="text" name="title" placeholder="Type new todo.">
+  </form>
+
   <ul>
+    <?php foreach ($todos as $todo): ?>
     <li>
-      <input type="checkbox">
-      <span>Title</span>
+      <input type="checkbox" <?= $todo->is_done ? 'checked' : ''; ?>>
+      <span class="<?= $todo->is_done ? 'done' : ''; ?>">
+        <?= h($todo->title); ?>
+      </span>
     </li>
-    <li>
-      <input type="checkbox" checked>
-      <span class="done">Title</span>
-    </li>
-    <li>
-      <input type="checkbox">
-      <span>Title</span>
-    </li>
+    <?php endforeach; ?>
   </ul>
 </body>
 </html>
