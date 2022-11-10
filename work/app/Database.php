@@ -8,7 +8,6 @@ class Database
 
   public static function getInstance()
 {
-
   try {
     if (!isset(self::$instance)) {
       self::$instance = new \PDO (
